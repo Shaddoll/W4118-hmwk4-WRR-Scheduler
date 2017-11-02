@@ -80,7 +80,7 @@ static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
  * Simple, special scheduling class for the per-CPU wrr tasks:
  */
 const struct sched_class wrr_sched_class = {
-	.next 				= NULL,
+	.next 			= &fair_sched_class,
 	.enqueue_task 		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
 

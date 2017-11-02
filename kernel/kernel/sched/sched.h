@@ -108,6 +108,7 @@ extern struct mutex sched_domains_mutex;
 
 struct cfs_rq;
 struct rt_rq;
+struct wrr_rq;
 
 extern struct list_head task_groups;
 
@@ -357,6 +358,14 @@ struct rt_rq {
 	struct task_group *tg;
 #endif
 };
+
+
+struct wrr_rq {
+	unsigned long wrr_nr_running;
+	struct list_head queue;
+	struct rq *rq;
+};
+
 
 #ifdef CONFIG_SMP
 

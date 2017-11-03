@@ -28,24 +28,29 @@ static void post_schedule_wrr(struct rq *rq)
 
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	;
+	return;
 }
 
 static struct task_struct *pick_next_task_wrr(struct rq *rq)
 {
-	;
+	struct sched_wrr_entity *result;
+	
+	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
+	return result;
 }
 
 static void
 enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	;
+	list_add_tail(&(p->wre), rq->wrr_rq);
+	inc_nr_running(rq);
 }
 
 static void
 dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	;
+	list_del(&p->wre);
+	dec_nr_entity(rq);
 }
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)

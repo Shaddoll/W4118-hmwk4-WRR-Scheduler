@@ -6,6 +6,8 @@
  * (NOTE: these are not related to SCHED_wrr tasks which are
  *  handled in sched/fair.c)
  */
+ 
+#define WRR_TIMESLICE		(100 * HZ / 1000)
 
 #ifdef CONFIG_SMP
 static int
@@ -39,7 +41,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
-	struct list_head *queue = rq->wrr.queue;
+	struct list_head *queue = &(rq->wrr.queue);
 
 	if (head)
 		list_add(&wrr_se->list, queue);
@@ -55,7 +57,7 @@ dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 	--rq->wrr.wrr_nr_running;
 }
 
-void init_wrr_rq(struct wrr_rq *wrr_rq)
+void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)
 {
 	INIT_LIST_HEAD(&wrr_rq->queue);
 	wrr_rq->wrr_nr_running = 0;
@@ -76,7 +78,7 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_wrr_entity *wrr_se = &p->wre;
 
 	update_curr_wrr(rq);
-	dequeue_wrr_entity(rq, wrr_se)
+	dequeue_wrr_entity(rq, wrr_se);
 	dec_nr_running(rq);
 }
 
@@ -87,7 +89,7 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 {
 	struct sched_wrr_entity *wrr_se = &p->wre;
-	struct list_head *queue = rq->wrr.queue;
+	struct list_head *queue = &(rq->wrr.queue);
 	
 	if (head)
 		list_move(&wrr_se->list, queue);
@@ -118,10 +120,10 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	watchdog(rq, p);
 
-	if (--p->wrr.time_slice)
+	if (--p->wre.time_slice)
 		return;
 
-	p->wrr.time_slice = WRR_TIMESLICE;
+	p->wre.time_slice = WRR_TIMESLICE;
 	
 	if (wrr_se->list.prev != wrr_se->list.next) {
 		requeue_task_wrr(rq, p, 0);

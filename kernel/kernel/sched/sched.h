@@ -111,7 +111,6 @@ struct rt_rq;
 struct wrr_rq;
 
 extern struct list_head task_groups;
-
 struct cfs_bandwidth {
 #ifdef CONFIG_CFS_BANDWIDTH
 	raw_spinlock_t lock;

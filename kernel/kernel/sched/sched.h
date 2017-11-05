@@ -1029,7 +1029,7 @@ extern const struct sched_class stop_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
-
+extern const struct sched_class wrr_sched_class;
 
 #ifdef CONFIG_SMP
 
@@ -1057,7 +1057,7 @@ static inline void idle_balance(int cpu, struct rq *rq)
 }
 
 #endif
-
+extern void init_wrr_rq(wrr_rq *wrrrq, rq *q);
 extern void sysrq_sched_debug_show(void);
 extern void sched_init_granularity(void);
 extern void update_max_interval(void);

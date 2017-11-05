@@ -1168,7 +1168,12 @@ void kick_process(struct task_struct *p)
 }
 EXPORT_SYMBOL_GPL(kick_process);
 #endif /* CONFIG_SMP */
-
+//wrr
+int is_wrr(struct task_struct *p) {
+	if (p->policy == SCHED_WRR)
+		return 1;
+	return 0;
+}
 #ifdef CONFIG_SMP
 /*
  * ->cpus_allowed is protected by both rq->lock and p->pi_lock
@@ -1624,7 +1629,7 @@ static void __sched_fork(struct task_struct *p)
 
 	INIT_LIST_HEAD(&p->rt.run_list);
 
-	INIT_LIST_HEAD(&p->wrr.list); // wrr
+	INIT_LIST_HEAD(&p->wre.list); // wrr
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
@@ -1712,6 +1717,9 @@ void sched_fork(struct task_struct *p)
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
 
+	//wrr
+	if (is_wrr(p))
+		p->sched_class = &wrr_sched_class;
 	/*
 	 * The child is not yet in the pid-hash so no cgroup attach races,
 	 * and the cgroup is pinned to this child due to cgroup_fork()
@@ -3824,7 +3832,9 @@ __setscheduler(struct rq *rq, struct task_struct *p, int policy, int prio)
 	p->normal_prio = normal_prio(p);
 	/* we are holding p->pi_lock already */
 	p->prio = rt_mutex_getprio(p);
-	if (rt_prio(p->prio))
+	if (is_grr(p))
+		p->sched_class = &wrr_sched_class;//wrr
+	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
@@ -3869,7 +3879,7 @@ recheck:
 
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_NORMAL && policy != SCHED_BATCH &&
-				policy != SCHED_IDLE)
+				policy != SCHED_IDLE && policy != SCHED_WRR)//wrr
 			return -EINVAL;
 	}
 
@@ -7076,7 +7086,7 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
-	current->sched_class = &wrr_sched_class;
+	current->sched_class = &wrr_sched_class; //wrr
 	current->sched_class = &fair_sched_class;
 
 #ifdef CONFIG_SMP

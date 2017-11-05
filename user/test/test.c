@@ -6,9 +6,13 @@
 
 int main(int argc, char *argv[])
 {
+	fork();
 	pid_t pid = getpid();
-	int ret;
+	int ret, count, count1, i;
 
+	count = 0;
+	count1 = 0;
+	i = 0;
 	struct sched_param param;
 	param.sched_priority = 0;
 
@@ -16,7 +20,13 @@ int main(int argc, char *argv[])
 	if (ret != 0) {
 		printf("error");
 	}
-	while(1);
-
+	for(i=0;i<10;i++) {
+		count = 0;
+		while(count < 100000000) {
+			count1++;
+			count++;
+		}
+	}
+	printf("%d", count1);
 	return 0;
 }

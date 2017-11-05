@@ -215,7 +215,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	if (wrr_se->list.prev != wrr_se->list.next) {
 		requeue_task_wrr(rq, p, 0);
-		set_tsk_need_resched(p);
+		resched_task(p);
 	}
 }
 

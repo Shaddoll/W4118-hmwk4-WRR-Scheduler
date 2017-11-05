@@ -29,9 +29,11 @@ static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int fla
 static struct task_struct *pick_next_task_wrr(struct rq *rq)
 {
 	struct sched_wrr_entity *result;
+	struct task_struct *p;
 	
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
-	return result;
+	p = container_of(result, struct task_struct, wre);
+	return p;
 }
 
 static void

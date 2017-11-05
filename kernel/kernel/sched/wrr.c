@@ -85,6 +85,38 @@ dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 	--rq->wrr.wrr_nr_running;
 }
 
+
+void pull_wrr_task(int cpu_id) {
+	int i, moved;
+	struct rq *dest_rq = cpu_rq(cpu_id);
+	struct rq *temp_rq;
+	struct wrr_enitity *temp_wre;
+	struct task_struct *p;
+
+	moved = false;
+	for_each_online_cpu(i) {
+		if (i == cpu_id)
+			continue;
+
+		temp_rq = cpu_rq(i);
+
+		double_rq_lock(dest_rq, temp_rq);
+		if (temp_rq->wrr_rq.nr_running == 1)
+			continue;
+
+		list_for_each_entry(temp_wre, &((temp_rq->wrr_rq).queue), list) {			
+			p = //get task struct
+			//check if task can work on current CPU
+			//dequeue and enqueue
+		}
+		if (moved) {
+			double_rq_unlock(dest_rq, temp_rq);
+			return;
+		}
+	}
+	double_rq_unlock(dest_rq, temp_rq);
+}
+
 void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)
 {
 	INIT_LIST_HEAD(&wrr_rq->queue);

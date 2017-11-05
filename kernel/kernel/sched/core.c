@@ -1624,6 +1624,8 @@ static void __sched_fork(struct task_struct *p)
 
 	INIT_LIST_HEAD(&p->rt.run_list);
 
+	INIT_LIST_HEAD(&p->wrr.list); // wrr
+
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
 #endif
@@ -6978,6 +6980,9 @@ void __init sched_init(void)
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt, rq);
+
+		init_wrr_rq(&rq->wrr, rq); // wrr
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
@@ -7071,6 +7076,7 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
+	current->sched_class = &wrr_sched_class;
 	current->sched_class = &fair_sched_class;
 
 #ifdef CONFIG_SMP

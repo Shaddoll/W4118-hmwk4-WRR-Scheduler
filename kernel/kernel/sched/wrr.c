@@ -39,15 +39,24 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	return result;
 }
 
+void init_wrr_rq(struct wrr_rq *wrr_rq)
+{
+	INIT_LIST_HEAD(&wrr_rq->queue);
+	wrr_rq->wrr_nr_running = 0;
+}
+
 static void
 enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	list_add_tail(&(p->wre), rq->wrr_rq);
+	if (flags & ENQUEUE_HEAD)
+		list_add(&(p->wre), rq->wrr_rq);
+	else
+		list_add_tail(&(p->wre), rq->wrr_rq);
 	inc_nr_running(rq);
 }
 
 static void
-dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
+dequeue_task_wrr(struct rq *rq, struct task_struct *p)
 {
 	list_del(&p->wre);
 	dec_nr_entity(rq);
@@ -59,7 +68,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
-	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct sched_wrr_entity *wre = &p->wrr;
 	
 	update_curr_rt(rq);
 

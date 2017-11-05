@@ -101,8 +101,10 @@ void pull_wrr_task(int cpu_id) {
 		temp_rq = cpu_rq(i);
 
 		double_rq_lock(dest_rq, temp_rq);
-		if (temp_rq->wrr_rq.nr_running == 1)
+		if (temp_rq->wrr_rq.nr_running == 1) {
+			double_rq_unlock(dest_rq, temp_rq);
 			continue;
+		}
 
 		list_for_each_entry(temp_wre, &((temp_rq->wrr_rq).queue), list) {			
 			p = container_of(temp_wre, struct task_struct, wre);//get task struct
@@ -121,8 +123,8 @@ void pull_wrr_task(int cpu_id) {
 			double_rq_unlock(dest_rq, temp_rq);
 			return;
 		}
+		double_rq_unlock(dest_rq, temp_rq);
 	}
-	double_rq_unlock(dest_rq, temp_rq);
 }
 
 void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)

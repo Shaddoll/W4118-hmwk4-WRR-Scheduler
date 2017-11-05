@@ -59,7 +59,22 @@ static void
 dequeue_task_wrr(struct rq *rq, struct task_struct *p)
 {
 	list_del(&p->wre);
-	dec_nr_entity(rq);
+	dec_nr_running(rq);
+}
+
+/*
+ * Put task to the end of the run list without the overhead of dequeue
+ * followed by enqueue.
+ */
+static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
+{
+	list_move_tail(&(p->wre), rq->wrr_rq);
+}
+
+static void
+yield_task_wrr(struct rq *rq, struct task_struct *p, int head)
+{
+	requeue_task_wrr(rq, p);
 }
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
@@ -68,7 +83,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
-	struct sched_wrr_entity *wre = &p->wrr;
+	struct sched_wrr_entity *wrr_se = &p->wre;
 	
 	update_curr_rt(rq);
 
@@ -112,6 +127,7 @@ const struct sched_class wrr_sched_class = {
 	.next 			= &fair_sched_class,
 	.enqueue_task 		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
+	.yield_task		= yield_task_wrr,
 
 	.check_preempt_curr	= check_preempt_curr_wrr,
 

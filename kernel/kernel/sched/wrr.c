@@ -50,7 +50,7 @@ static void
 dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	list_del(&p->wre);
-	dec_nr_entity(rq);
+	dec_nr_running(rq);
 }
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)

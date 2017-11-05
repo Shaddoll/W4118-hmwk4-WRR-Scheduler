@@ -93,7 +93,7 @@ void pull_wrr_task(int cpu_id) {
 	struct wrr_enitity *temp_wre;
 	struct task_struct *p;
 
-	moved = false;
+	moved = 0;
 	for_each_online_cpu(i) {
 		if (i == cpu_id)
 			continue;
@@ -105,9 +105,17 @@ void pull_wrr_task(int cpu_id) {
 			continue;
 
 		list_for_each_entry(temp_wre, &((temp_rq->wrr_rq).queue), list) {			
-			p = //get task struct
-			//check if task can work on current CPU
-			//dequeue and enqueue
+			p = container_of(temp_wre, struct task_struct, wre);//get task struct
+
+			if (p == temp_rq->curr)
+				continue;
+
+			if (!cpumask_test(cpu_id, p->cpus_allowed))
+				continue;//check if task can work on current CPU
+
+			dequeue_task_wrr(temp_rq, p, 0);
+			enqueue_task_wrr(dest_rq, p, 0);//dequeue and enqueue
+			moved = 1;
 		}
 		if (moved) {
 			double_rq_unlock(dest_rq, temp_rq);

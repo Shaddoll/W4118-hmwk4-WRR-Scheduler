@@ -168,7 +168,7 @@ extern struct task_group root_task_group;
 	.prio		= MAX_PRIO-20,					\
 	.static_prio	= MAX_PRIO-20,					\
 	.normal_prio	= MAX_PRIO-20,					\
-	.policy		= SCHED_NORMAL,					\
+	.policy		= SCHED_WRR,					\
 	.cpus_allowed	= CPU_MASK_ALL,					\
 	.nr_cpus_allowed= NR_CPUS,					\
 	.mm		= NULL,						\
@@ -187,6 +187,11 @@ extern struct task_group root_task_group;
 	.ptrace_entry	= LIST_HEAD_INIT(tsk.ptrace_entry),		\
 	.real_parent	= &tsk,						\
 	.parent		= &tsk,						\
+	.wre		= {						\
+		.weight		= 1,					\
+		.time_slice	= WRR_TIMESLICE,			\
+		.list		= LIST_HEAD_INIT(task.wre.list),	\
+	},								\
 	.children	= LIST_HEAD_INIT(tsk.children),			\
 	.sibling	= LIST_HEAD_INIT(tsk.sibling),			\
 	.group_leader	= &tsk,						\

@@ -228,9 +228,9 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 	print_cfs_group_stats(m, cpu, cfs_rq->tg);
 #endif
 }
-void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rw *wrr_rq)
+void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq)
 {
-
+	SEQ_printf(m, "\nwrr_rq[%d]: total_weight:%d, wrr_nr_running: %d\n", cpu, wrr_rq->total_weight, wrr_rq->wrr_nr_running);
 }
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
 {

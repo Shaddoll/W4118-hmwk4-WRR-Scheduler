@@ -1,4 +1,5 @@
 #include "sched.h"
+#include "wrr.h"
 
 /*
  * wrr-task scheduling class.
@@ -6,8 +7,7 @@
  * (NOTE: these are not related to SCHED_wrr tasks which are
  *  handled in sched/fair.c)
  */
- 
-#define WRR_TIMESLICE		(10 * HZ / 1000)
+
 
 #ifdef CONFIG_SMP
 static int

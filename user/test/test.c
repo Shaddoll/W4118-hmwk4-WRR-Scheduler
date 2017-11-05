@@ -2,19 +2,32 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sched.h>
+#include <sys/syscall.h>
+#include "../../kernel/kernel/sched/wrr.h"
 
+void print(struct wrr_info *wrr_info)
+{
+	int i;
+	printf("=====================\n");
+	for (i = 0; i < wrr_info->num_cpus; i++) {
+		printf("\tcpu[%d]:\n");
+		printf("\t\tnr_running:\t%d\n", wrr_info->nr_running[i]);
+		printf("\t\ttotal_weight:\t%d\n", wrr_info->total_weight[i]);
+		printf("-------------\n");
+	}
+}
 
 int main(int argc, char *argv[])
 {
 	pid_t pid = getpid();
-	int ret, tt, i, j, k, count = 0;
+	int ret, tt, i, j, k;
+	struct wrr_info u_wrr_info;
 
-	struct sched_param param;
-	param.sched_priority = 0;
-
-	ret = sched_setscheduler(pid, 6, &param);
-	fork();
-	while (1) ;
+	while (1) {
+		syscall(244, &u_wrr_info);
+		print(&u_wrr_info);
+		sleep(3);
+	}
 	
 	return count;
 }

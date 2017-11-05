@@ -361,6 +361,7 @@ struct rt_rq {
 
 
 struct wrr_rq {
+	unsigned long total_weight;
 	unsigned long wrr_nr_running;
 	struct list_head queue;
 	struct rq *rq;

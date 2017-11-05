@@ -1024,6 +1024,7 @@ struct sched_rt_entity {
 
 
 struct sched_wrr_entity {
+	int weight;
 	unsigned int time_slice;
 	struct list_head list;
 	struct wrr_rq *wrr_rq;

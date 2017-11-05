@@ -10,7 +10,7 @@ void print(struct wrr_info *wrr_info)
 	int i;
 	printf("=====================\n");
 	for (i = 0; i < wrr_info->num_cpus; i++) {
-		printf("\tcpu[%d]:\n");
+		printf("\tcpu[%d]:\n", i);
 		printf("\t\tnr_running:\t%d\n", wrr_info->nr_running[i]);
 		printf("\t\ttotal_weight:\t%d\n", wrr_info->total_weight[i]);
 		printf("-------------\n");
@@ -19,8 +19,6 @@ void print(struct wrr_info *wrr_info)
 
 int main(int argc, char *argv[])
 {
-	pid_t pid = getpid();
-	int ret, tt, i, j, k;
 	struct wrr_info u_wrr_info;
 
 	while (1) {
@@ -29,5 +27,5 @@ int main(int argc, char *argv[])
 		sleep(3);
 	}
 	
-	return count;
+	return 0;
 }

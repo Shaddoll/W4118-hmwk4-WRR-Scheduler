@@ -33,7 +33,11 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	struct sched_wrr_entity *result;
 	struct task_struct *p;
 	
+	if (rq->wrr.wrr_nr_running == 0)
+		return NULL;
+
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
+
 	p = container_of(result, struct task_struct, wre);
 	return p;
 }
@@ -119,6 +123,8 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	update_curr_wrr(rq);
 
 	watchdog(rq, p);
+	
+	printk("======================task_tick: %d\n", p->pid);
 
 	if (--p->wre.time_slice)
 		return;

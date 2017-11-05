@@ -57,8 +57,23 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 {
 }
 
-static void task_tick_wrr(struct rq *rq, struct task_struct *curr, int queued)
+static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	
+	update_curr_rt(rq);
+
+	watchdog(rq, p);
+
+	if (--p->wrr.time_slice)
+		return;
+
+	p->wrr.time_slice = WRR_TIMESLICE;
+	
+	if (wrr_se->list.prev != wrr_se->list.next) {
+		requeue_task_wrr(rq, p, 0);
+		set_tsk_need_resched(p);
+	}
 }
 
 static void set_curr_task_wrr(struct rq *rq)
@@ -78,7 +93,7 @@ prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
 {
-	;
+	return WRR_TIMESLICE;
 }
 
 /*

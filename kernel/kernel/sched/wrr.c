@@ -59,7 +59,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
-	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct sched_wrr_entity *wrr_se = &p->wre;
 	
 	update_curr_rt(rq);
 

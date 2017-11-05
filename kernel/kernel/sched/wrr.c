@@ -13,16 +13,6 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
 	return 0;
 }
-
-static void pre_schedule_wrr(struct rq *rq, struct task_struct *prev)
-{
-	;
-}
-
-static void post_schedule_wrr(struct rq *rq)
-{
-	;
-}
 #endif /* CONFIG_SMP */
 
 
@@ -39,6 +29,25 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	return result;
 }
 
+static void
+enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
+{
+	struct list_head *queue = rq->wrr.queue;
+
+	if (head)
+		list_add(&wrr_se->list, queue);
+	else
+		list_add_tail(&wrr_se->list, queue);
+	++rq->wrr.wrr_nr_running;
+}
+
+static void
+dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
+{
+	list_del_init(&wrr_se->list);
+	--rq->wrr.wrr_nr_running;
+}
+
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	INIT_LIST_HEAD(&wrr_rq->queue);
@@ -48,17 +57,19 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 static void
 enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	if (flags & ENQUEUE_HEAD)
-		list_add(&(p->wre), rq->wrr_rq);
-	else
-		list_add_tail(&(p->wre), rq->wrr_rq);
+	struct sched_wrr_entity *wrr_se = &p->wre;
+
+	enqueue_wrr_entity(rq, wrr_se, flags & ENQUEUE_HEAD);	
 	inc_nr_running(rq);
 }
 
 static void
-dequeue_task_wrr(struct rq *rq, struct task_struct *p)
+dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	list_del(&p->wre);
+	struct sched_wrr_entity *wrr_se = &p->wre;
+
+	update_curr_wrr(rq);
+	dequeue_wrr_entity(rq, wrr_se)
 	dec_nr_running(rq);
 }
 
@@ -66,15 +77,21 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p)
  * Put task to the end of the run list without the overhead of dequeue
  * followed by enqueue.
  */
-static void requeue_task_wrr(struct rq *rq, struct task_struct *p)
+static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 {
-	list_move_tail(&(p->wre), rq->wrr_rq);
+	struct sched_wrr_entity *wrr_se = &p->wre;
+	struct list_head *queue = rq->wrr.queue;
+	
+	if (head)
+		list_move(&wrr_se->list, queue);
+	else
+		list_move_tail(&wrr_se->list, queue);
 }
 
 static void
-yield_task_wrr(struct rq *rq, struct task_struct *p, int head)
+yield_task_wrr(struct rq *rq)
 {
-	requeue_task_wrr(rq, p);
+	requeue_task_wrr(rq, rq->curr, 0);
 }
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
@@ -85,7 +102,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	
-	update_curr_rt(rq);
+	update_curr_wrr(rq);
 
 	watchdog(rq, p);
 
@@ -136,8 +153,8 @@ const struct sched_class wrr_sched_class = {
 
 #ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,
-	.pre_schedule		= pre_schedule_wrr,
-	.post_schedule		= post_schedule_wrr,
+	//.pre_schedule		= pre_schedule_wrr,
+	//.post_schedule		= post_schedule_wrr,
 #endif
 
 	.set_curr_task          = set_curr_task_wrr,

@@ -13,7 +13,19 @@
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
-	return 0;
+	int cpu, temp, result;
+	int minimum_weight = 2147483647;
+	
+	rcu_read_lock();
+	for_each_online_cpu(cpu) {
+		temp = &cpu_rq(cpu)->wrr->total_weight;
+		if (temp <= minimum_weight) {
+			minimum_weight = temp;
+			result = cpu;
+		}
+	}
+	rcu_read_unlock();
+	return result;
 }
 #endif /* CONFIG_SMP */
 

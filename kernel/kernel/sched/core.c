@@ -1772,7 +1772,13 @@ void wake_up_new_task(struct task_struct *p)
 #endif
 
 	rq = __task_rq_lock(p);
-	p->wre.time_slice = 10;
+	
+	if (p->cred->uid >= 10000)
+		p->wre.weight = 10;
+	else
+		p->wre.weight = 1;
+	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
+	
 	activate_task(rq, p, 0);
 	p->on_rq = 1;
 	trace_sched_wakeup_new(p, true);

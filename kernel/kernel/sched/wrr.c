@@ -149,6 +149,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 static void set_curr_task_wrr(struct rq *rq)
 {
+	struct task_struct *p = rq->curr;
+
+	p->se.exec_start = rq->clock_task;
 }
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)

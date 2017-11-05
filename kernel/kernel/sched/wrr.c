@@ -33,8 +33,10 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	struct sched_wrr_entity *result;
 	struct task_struct *p;
 	
+	
 	if (rq->wrr.wrr_nr_running == 0)
 		return NULL;
+	printk("=== pick next!\n");
 
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
 
@@ -45,6 +47,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
+	printk("========= enqueue\n");
 	struct list_head *queue = &(rq->wrr.queue);
 
 	if (head)
@@ -57,6 +60,7 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 static void
 dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
+	printk("========= dequeue\n");
 	list_del_init(&wrr_se->list);
 	--rq->wrr.wrr_nr_running;
 }
@@ -92,6 +96,8 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
  */
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 {
+	printk("=== requeue\n");
+
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	struct list_head *queue = &(rq->wrr.queue);
 	
@@ -120,11 +126,13 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	
+	//return;
+	
 	update_curr_wrr(rq);
 
 	watchdog(rq, p);
 	
-	printk("======================task_tick: %d\n", p->pid);
+	printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
 	if (--p->wre.time_slice)
 		return;

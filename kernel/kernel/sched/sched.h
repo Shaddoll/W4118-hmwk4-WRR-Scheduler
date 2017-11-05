@@ -1057,7 +1057,7 @@ static inline void idle_balance(int cpu, struct rq *rq)
 }
 
 #endif
-extern void init_wrr_rq(wrr_rq *wrrrq, rq *q);
+extern void init_wrr_rq(struct wrr_rq *wrrrq, struct rq *q);
 extern void sysrq_sched_debug_show(void);
 extern void sched_init_granularity(void);
 extern void update_max_interval(void);

@@ -15,6 +15,11 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 }
 #endif /* CONFIG_SMP */
 
+static void
+update_curr_wrr(struct rq *rq)
+{
+	;
+}
 
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
@@ -96,6 +101,11 @@ yield_task_wrr(struct rq *rq)
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 {
+}
+
+static void watchdog(struct rq *rq, struct task_struct *p)
+{
+	;
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)

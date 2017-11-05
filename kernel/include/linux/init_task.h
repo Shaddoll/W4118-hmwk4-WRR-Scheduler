@@ -190,7 +190,7 @@ extern struct task_group root_task_group;
 	.wre		= {						\
 		.weight		= 1,					\
 		.time_slice	= WRR_TIMESLICE,			\
-		.list		= LIST_HEAD_INIT(task.wre.list),	\
+		.list		= LIST_HEAD_INIT(tsk.wre.list),	\
 	},								\
 	.children	= LIST_HEAD_INIT(tsk.children),			\
 	.sibling	= LIST_HEAD_INIT(tsk.sibling),			\

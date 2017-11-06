@@ -214,7 +214,7 @@ extern struct trace_event_functions exit_syscall_print_funcs;
 #endif
 
 asmlinkage long sys_get_wrr_info(struct wrr_info __user *u_wrr_info);
-asmlinkage long sys_set_wrr_weight(int __user boosted_weight);
+asmlinkage long sys_set_wrr_weight(int boosted_weight);
 
 asmlinkage long sys_time(time_t __user *tloc);
 asmlinkage long sys_stime(time_t __user *tptr);

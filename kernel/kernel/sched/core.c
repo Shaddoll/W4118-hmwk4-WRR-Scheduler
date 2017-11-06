@@ -8112,3 +8112,15 @@ void dump_cpu_task(int cpu)
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
 }
+
+
+SYSCALL_DEFINE1(get_wrr_info, struct *, wrr_info)
+{
+	return 0;
+}
+
+SYSCALL_DEFINE1(set_wrr_weight, int, boosted_weight)
+{
+	return 0;
+}
+

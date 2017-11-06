@@ -1,5 +1,9 @@
 #include "sched.h"
 #include "wrr.h"
+
+
+
+
 /*
  * wrr-task scheduling class.
  *
@@ -267,13 +271,3 @@ const struct sched_class wrr_sched_class = {
 	.switched_to		= switched_to_wrr,
 };
 
-
-void print_wrr_stats(struct seq_file *m, int cpu)
-{
-	struct wrr_rq *wrr_rq;
-
-	rcu_read_lock();
-	wrr_rq = cpu_rq(cpu)->wrr;
-	print_wrr_rq(m, cpu, wrr_rq);
-	rcu_read_unlock();
-}

@@ -1,6 +1,5 @@
 #include "sched.h"
 #include "wrr.h"
-
 /*
  * wrr-task scheduling class.
  *
@@ -15,15 +14,17 @@
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
-	struct task_struct *curr;
-	struct rq *rq;
-
-	int cpu, temp, result;
+	int cpu, temp, result, count;
 	int minimum_weight = 2147483647;
 	
+	count = 0;
+	result = 0;
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
-		temp = &cpu_rq(cpu)->wrr->total_weight;
+		temp = cpu_rq(cpu)->wrr.total_weight;
+		count++;
+		if (count == 1)
+			result = cpu;
 		if (temp <= minimum_weight) {
 			minimum_weight = temp;
 			result = cpu;
@@ -84,54 +85,6 @@ dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 	rq->wrr.total_weight -= wrr_se->weight;
 	--rq->wrr.wrr_nr_running;
 }
-
-
-void pull_wrr_task(int cpu_id) {
-	int i, moved;
-	struct rq *dest_rq = cpu_rq(cpu_id);
-	struct rq *temp_rq;
-	struct wrr_enitity *temp_wre;
-	struct task_struct *p;
-
-	moved = 0;
-	for_each_online_cpu(i) {
-		if (i == cpu_id)
-			continue;
-
-		temp_rq = cpu_rq(i);
-
-		double_rq_lock(dest_rq, temp_rq);
-		if (temp_rq->wrr_rq.nr_running == 1)
-			continue;
-
-		list_for_each_entry(temp_wre, &((temp_rq->wrr_rq).queue), list) {			
-			p = container_of(temp_wre, struct task_struct, wre);//get task struct
-
-			if (p == temp_rq->curr)
-				continue;
-
-			if (!cpumask_test(cpu_id, p->cpus_allowed))
-				continue;//check if task can work on current CPU
-
-			dequeue_task_wrr(temp_rq, p, 0);
-			enqueue_task_wrr(dest_rq, p, 0);//dequeue and enqueue
-			moved = 1;
-		}
-		if (moved) {
-			double_rq_unlock(dest_rq, temp_rq);
-			return;
-		}
-	}
-	double_rq_unlock(dest_rq, temp_rq);
-}
-
-void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)
-{
-	INIT_LIST_HEAD(&wrr_rq->queue);
-	wrr_rq->wrr_nr_running = 0;
-	wrr_rq->total_weight = 0;
-}
-
 static void
 enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
@@ -151,17 +104,67 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	dec_nr_running(rq);
 }
 
+void pull_wrr_task(int cpu_id) {
+	int i, moved;
+	struct rq *dest_rq = cpu_rq(cpu_id);
+	struct rq *temp_rq;
+	struct sched_wrr_entity *temp_wre;
+	struct task_struct *p;
+
+	moved = 0;
+	temp_rq = NULL;
+	for_each_online_cpu(i) {
+		if (i == cpu_id)
+			continue;
+
+		temp_rq = cpu_rq(i);
+
+		double_rq_lock(dest_rq, temp_rq);
+		if (temp_rq->wrr.wrr_nr_running == 1) {
+			double_rq_unlock(dest_rq, temp_rq);
+			continue;
+		}
+
+		list_for_each_entry(temp_wre, &temp_rq->wrr.queue, list) {			
+			p = container_of(temp_wre, struct task_struct, wre);//get task struct
+
+			if (p == temp_rq->curr)
+				continue;
+
+			if (!cpumask_test_cpu(cpu_id, tsk_cpus_allowed(p)))
+				continue;//check if task can work on current CPU
+
+			dequeue_task_wrr(temp_rq, p, 0);
+			enqueue_task_wrr(dest_rq, p, 0);//dequeue and enqueue
+			moved = 1;
+		}
+		if (moved) {
+			double_rq_unlock(dest_rq, temp_rq);
+			return;
+		}
+		double_rq_unlock(dest_rq, temp_rq);
+	}
+}
+
+void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)
+{
+	INIT_LIST_HEAD(&wrr_rq->queue);
+	wrr_rq->wrr_nr_running = 0;
+	wrr_rq->total_weight = 0;
+}
+
+
 /*
  * Put task to the end of the run list without the overhead of dequeue
  * followed by enqueue.
  */
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 {
-	printk("=== requeue\n");
-
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	struct list_head *queue = &(rq->wrr.queue);
-	
+
+	printk("=== requeue\n");
+
 	if (head)
 		list_move(&wrr_se->list, queue);
 	else
@@ -200,7 +203,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	if (p->wre.weight > 1) {
 		p->wre.weight = p->wre.weight - 1;
-		--rq->wrr->total_weight;
+		--rq->wrr.total_weight;
 	}
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
 

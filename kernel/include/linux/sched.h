@@ -1135,6 +1135,14 @@ struct sched_rt_entity {
 };
 
 
+struct sched_wrr_entity {
+	int weight;
+	unsigned int time_slice;
+	struct list_head list;
+	struct wrr_rq *wrr_rq;
+	struct wrr_rq *my_q;
+};
+
 struct rcu_node;
 
 enum perf_event_task_context {
@@ -1172,6 +1180,7 @@ struct task_struct {
 #ifdef CONFIG_SCHED_HMP
 	struct ravg ravg;
 #endif
+	struct sched_wrr_entity wre;
 #ifdef CONFIG_CGROUP_SCHED
 	struct task_group *sched_task_group;
 #endif

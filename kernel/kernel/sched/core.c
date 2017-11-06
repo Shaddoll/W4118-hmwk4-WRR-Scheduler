@@ -88,6 +88,7 @@
 #endif
 
 #include "sched.h"
+#include "wrr.h"
 #include "../workqueue_internal.h"
 #include "../smpboot.h"
 
@@ -140,6 +141,7 @@ void __smp_mb__after_atomic(void)
 }
 EXPORT_SYMBOL(__smp_mb__after_atomic);
 #endif
+static int default_wrr_weight = 10;
 
 void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period)
 {
@@ -2751,7 +2753,12 @@ void kick_process(struct task_struct *p)
 }
 EXPORT_SYMBOL_GPL(kick_process);
 #endif /* CONFIG_SMP */
-
+//wrr
+int is_wrr(struct task_struct *p) {
+	if (p->policy == SCHED_WRR)
+		return 1;
+	return 0;
+}
 #ifdef CONFIG_SMP
 /*
  * ->cpus_allowed is protected by both rq->lock and p->pi_lock
@@ -3285,6 +3292,8 @@ static void __sched_fork(struct task_struct *p)
 
 	INIT_LIST_HEAD(&p->rt.run_list);
 
+	INIT_LIST_HEAD(&p->wre.list); // wrr
+
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);
 #endif
@@ -3371,6 +3380,9 @@ void sched_fork(struct task_struct *p)
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
 
+	//wrr
+	if (is_wrr(p))
+		p->sched_class = &wrr_sched_class;
 	/*
 	 * The child is not yet in the pid-hash so no cgroup attach races,
 	 * and the cgroup is pinned to this child due to cgroup_fork()
@@ -3424,6 +3436,13 @@ void wake_up_new_task(struct task_struct *p)
 
 	rq = __task_rq_lock(p);
 	mark_task_starting(p);
+	
+	if (p->cred->uid >= 10000)
+		p->wre.weight = default_wrr_weight;
+	else
+		p->wre.weight = 1;
+	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
+	
 	activate_task(rq, p, 0);
 	p->on_rq = 1;
 	trace_sched_wakeup_new(p, true);
@@ -4435,6 +4454,8 @@ void scheduler_tick(void)
 #ifdef CONFIG_SMP
 	rq->idle_balance = idle_cpu(cpu);
 	trigger_load_balance(rq, cpu);
+	//if (rq->wrr.wrr_nr_running == 0)
+	//	pull_wrr_task(cpu);
 #endif
 	rq_last_tick_reset(rq);
 	if (curr->sched_class == &fair_sched_class)
@@ -5551,7 +5572,9 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 	p->normal_prio = normal_prio(p);
 	p->prio = rt_mutex_getprio(p);
 
-	if (rt_prio(p->prio))
+	if (is_wrr(p))
+		p->sched_class = &wrr_sched_class;//wrr
+	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
@@ -5598,7 +5621,7 @@ recheck:
 
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_NORMAL && policy != SCHED_BATCH &&
-				policy != SCHED_IDLE)
+				policy != SCHED_IDLE && policy != SCHED_WRR)//wrr
 			return -EINVAL;
 	}
 
@@ -8963,6 +8986,9 @@ void __init sched_init(void)
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt, rq);
+
+		init_wrr_rq(&rq->wrr, rq); // wrr
+
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
@@ -9084,6 +9110,7 @@ void __init sched_init(void)
 	/*
 	 * During early bootup we pretend to be a normal task:
 	 */
+	current->sched_class = &wrr_sched_class; //wrr
 	current->sched_class = &fair_sched_class;
 
 #ifdef CONFIG_SMP
@@ -10151,4 +10178,47 @@ void dump_cpu_task(int cpu)
 {
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
+}
+
+
+SYSCALL_DEFINE1(get_wrr_info, struct wrr_info*, u_wrr_info)
+{
+	struct wrr_info *k_wrr_info;
+	unsigned int cpu, i;
+	struct rq *rq;
+	int nr_cpus = num_online_cpus();
+
+	k_wrr_info = kmalloc(sizeof(struct wrr_info), GFP_KERNEL);
+	if (!k_wrr_info)
+		return -ENOMEM;
+
+	k_wrr_info->num_cpus = nr_cpus;
+	i = 0;
+	
+	rcu_read_lock();
+	for_each_online_cpu(cpu) {
+		rq = cpu_rq(cpu);
+		k_wrr_info->nr_running[i] = rq->wrr.wrr_nr_running;
+		k_wrr_info->total_weight[i] = rq->wrr.total_weight;
+		i++;
+	}
+	rcu_read_unlock();
+
+	if (copy_to_user(u_wrr_info, k_wrr_info, sizeof(struct wrr_info))) {
+		kfree(k_wrr_info);
+		return -EFAULT;
+	}
+	return 0;
+}
+
+SYSCALL_DEFINE1(set_wrr_weight, int, boosted_weight)
+{
+	if (current_euid() != 0 && current_uid() != 0)
+		return -EACCES;
+	if (boosted_weight < 1)
+		return -EINVAL;
+
+	default_wrr_weight = boosted_weight;
+
+	return 0;
 }

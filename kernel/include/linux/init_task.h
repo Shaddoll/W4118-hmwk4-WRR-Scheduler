@@ -197,6 +197,11 @@ extern struct task_group root_task_group;
 	.ptrace_entry	= LIST_HEAD_INIT(tsk.ptrace_entry),		\
 	.real_parent	= &tsk,						\
 	.parent		= &tsk,						\
+	.wre		= {						\
+		.weight		= 1,					\
+		.time_slice	= WRR_TIMESLICE,			\
+		.list		= LIST_HEAD_INIT(tsk.wre.list),	\
+	},								\
 	.children	= LIST_HEAD_INIT(tsk.children),			\
 	.sibling	= LIST_HEAD_INIT(tsk.sibling),			\
 	.group_leader	= &tsk,						\

@@ -1,4 +1,3 @@
-
 #include <linux/sched.h>
 #include <linux/sched/sysctl.h>
 #include <linux/sched/rt.h>
@@ -111,6 +110,7 @@ extern struct mutex sched_domains_mutex;
 
 struct cfs_rq;
 struct rt_rq;
+struct wrr_rq;
 
 extern struct list_head task_groups;
 
@@ -363,6 +363,15 @@ struct rt_rq {
 #endif
 };
 
+
+struct wrr_rq {
+	unsigned long total_weight;
+	unsigned long wrr_nr_running;
+	struct list_head queue;
+	struct rq *rq;
+};
+
+
 #ifdef CONFIG_SMP
 
 /*
@@ -389,6 +398,7 @@ struct root_domain {
 };
 
 extern struct root_domain def_root_domain;
+void pull_wrr_task(int cpu_id);
 
 #endif /* CONFIG_SMP */
 
@@ -427,6 +437,7 @@ struct rq {
 
 	struct cfs_rq cfs;
 	struct rt_rq rt;
+	struct wrr_rq wrr;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -1264,7 +1275,7 @@ extern const struct sched_class stop_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
-
+extern const struct sched_class wrr_sched_class;
 
 #ifdef CONFIG_SMP
 
@@ -1296,6 +1307,7 @@ static inline void idle_balance(int cpu, struct rq *rq)
 #ifdef CONFIG_SYSRQ_SCHED_DEBUG
 extern void sysrq_sched_debug_show(void);
 #endif
+extern void init_wrr_rq(struct wrr_rq *wrrrq, struct rq *q);
 extern void sched_init_granularity(void);
 extern void update_max_interval(void);
 extern void init_sched_rt_class(void);

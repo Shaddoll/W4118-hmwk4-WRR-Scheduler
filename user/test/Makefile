@@ -1,38 +1,37 @@
-TARGET=test
-SOURCES=test.c
+# Set this to the name of your program
+TARGET = test
 
-# You probably don't need to change below
+# Edit this variable to point to all
+# of your sources files (make sure
+# to put a complete relative path)
+SOURCES = test.c
 
-OBJECTS=$(SOURCES:%.c=%.o)
+# -----------------------------------------------
+#
+# Don't touch things below here unless
+# you know what you're doing :-)
+#
+OBJECTS = $(SOURCES:%.c=%.c.o)
+INCLUDE = -I$(A24_INCLUDE)
+LINK = -L$(A24_LINK)
+SYSROOT = --sysroot $(A24_SYSROOT)
+CFLAGS = -g -O2 -Wall $(INCLUDE) -static
+LDFLAGS = -static $(LINK) $(SYSROOT)
+CC = aarch64-linux-android-gcc
+LD = aarch64-linux-android-gcc
 
-BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
-OBJDIR=../../build-$(BRANCH)/$(shell basename $(CURDIR))
-SYSROOT=--sysroot=../sysroot
-
-CC=aarch64-linux-android-gcc
-
-INCLUDE=
-
-LDLIBS=-L../sysroot/lib64
-
-CFLAGS=-Wall  -g -pie  -fdata-sections -ffunction-sections $(SYSROOT) $(INCLUDE)
-LDFLAGS=$(SYSROOT) -pie
-
-TARGET:=$(addprefix $(OBJDIR)/,$(TARGET))
-OBJECTS:=$(addprefix $(OBJDIR)/,$(OBJECTS))
-
-.PHONY: default clean
-
-default: $(OBJDIR) $(TARGET)
-
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
-
-$(OBJDIR)/%.o: %.c
-	$(CC) -c $(CFLAGS) $< -o $@
+default: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+	@echo [Arm64-LD] $@
+	@$(LD) $(LDFLAGS) $(OBJECTS) -o $@
 
-clean:
-	rm -rf $(OBJDIR)
+%.c.o: %.c
+	@echo [Arm64-CC] $<...
+	@$(CC) -c $(CFLAGS) $< -o $@
+
+clean: .PHONY
+	@echo [CLEAN]
+	@rm -f $(OBJECTS) $(TARGET)
+
+.PHONY:

@@ -72,6 +72,7 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 		list_add(&wrr_se->list, queue);
 	else
 		list_add_tail(&wrr_se->list, queue);
+	rq->wrr.total_weight += wrr_se->weight;
 	++rq->wrr.wrr_nr_running;
 }
 
@@ -80,6 +81,7 @@ dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
 	//printk("========= dequeue\n");
 	list_del_init(&wrr_se->list);
+	rq->wrr.total_weight -= wrr_se->weight;
 	--rq->wrr.wrr_nr_running;
 }
 
@@ -87,6 +89,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)
 {
 	INIT_LIST_HEAD(&wrr_rq->queue);
 	wrr_rq->wrr_nr_running = 0;
+	wrr_rq->total_weight = 0;
 }
 
 static void
@@ -155,8 +158,10 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	if (--p->wre.time_slice)
 		return;
 
-	if (p->wre.weight > 1)
+	if (p->wre.weight > 1) {
 		p->wre.weight = p->wre.weight - 1;
+		--rq->wrr->total_weight;
+	}
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
 
 	if (wrr_se->list.prev != wrr_se->list.next) {

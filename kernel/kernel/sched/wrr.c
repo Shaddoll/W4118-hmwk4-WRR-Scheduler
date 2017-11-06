@@ -10,11 +10,23 @@
 #define WRR_TIMESLICE		(10 * HZ / 1000)
 
 #ifdef CONFIG_SMP
+
+static int
+find_idlest_cpu()
+{
+
+}
+
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
+	struct task_struct *curr;
+	struct rq *rq;
+	int cpu;
+
 	return 0;
 }
+
 #endif /* CONFIG_SMP */
 
 static void

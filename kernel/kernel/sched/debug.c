@@ -343,7 +343,7 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 	print_cfs_stats(m, cpu);
 	print_rt_stats(m, cpu);
-
+	print_wrr_states(m, cpu);
 	rcu_read_lock();
 	print_rq(m, rq, cpu);
 	rcu_read_unlock();
@@ -443,7 +443,20 @@ void sysrq_sched_debug_show(void)
 
 }
 #endif
+void print_wrr_rq(struct seq_file *m, int cpu)
+{
+	struct wrr_rq *wrr_rq = &cpu_rq(cpu)->wrr;
+	SEQ_printf(m, "\nwrr_rq[%d]: total_weight:%d, wrr_nr_running: %d\n", cpu, wrr_rq->total_weight, wrr_rq->wrr_nr_running);
+}
+void print_wrr_stats(struct seq_file *m, int cpu)
+{
+	//struct wrr_rq *wrr_rq;
 
+	rcu_read_lock();
+	//wrr_rq = &(cpu_rq(cpu)->wrr);
+	print_wrr_rq(m, cpu);
+	rcu_read_unlock();
+}
 /*
  * This itererator needs some explanation.
  * It returns 1 for the header position.

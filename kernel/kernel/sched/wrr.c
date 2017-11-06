@@ -1,5 +1,9 @@
 #include "sched.h"
 #include "wrr.h"
+
+
+
+
 /*
  * wrr-task scheduling class.
  *
@@ -32,7 +36,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 		}
 	}
 	rcu_read_unlock();
-	printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
+	//printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
 	return result;
 }
 
@@ -255,7 +259,7 @@ const struct sched_class wrr_sched_class = {
 #ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,
 	//.pre_schedule		= pre_schedule_wrr,
-	//.post_schedule		= post_schedule_wrr,
+	//.post_schedule	= post_schedule_wrr,
 #endif
 
 	.set_curr_task          = set_curr_task_wrr,
@@ -266,3 +270,4 @@ const struct sched_class wrr_sched_class = {
 	.prio_changed		= prio_changed_wrr,
 	.switched_to		= switched_to_wrr,
 };
+

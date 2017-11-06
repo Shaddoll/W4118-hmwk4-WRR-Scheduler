@@ -1,4 +1,5 @@
 #include "sched.h"
+#include "wrr.h"
 
 /*
  * wrr-task scheduling class.
@@ -6,25 +7,30 @@
  * (NOTE: these are not related to SCHED_wrr tasks which are
  *  handled in sched/fair.c)
  */
- 
-#define WRR_TIMESLICE		(10 * HZ / 1000)
+
 
 #ifdef CONFIG_SMP
 
-static int
-find_idlest_cpu()
-{
-
-}
 
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
 	struct task_struct *curr;
 	struct rq *rq;
-	int cpu;
 
-	return 0;
+	int cpu, temp, result;
+	int minimum_weight = 2147483647;
+	
+	rcu_read_lock();
+	for_each_online_cpu(cpu) {
+		temp = &cpu_rq(cpu)->wrr->total_weight;
+		if (temp <= minimum_weight) {
+			minimum_weight = temp;
+			result = cpu;
+		}
+	}
+	rcu_read_unlock();
+	return result;
 }
 
 #endif /* CONFIG_SMP */
@@ -48,7 +54,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	
 	if (rq->wrr.wrr_nr_running == 0)
 		return NULL;
-	printk("=== pick next!\n");
+	//printk("=== pick next!\n");
 
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
 
@@ -59,7 +65,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
-	printk("========= enqueue\n");
+	//printk("========= enqueue\n");
 	struct list_head *queue = &(rq->wrr.queue);
 
 	if (head)
@@ -72,7 +78,7 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 static void
 dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
-	printk("========= dequeue\n");
+	//printk("========= dequeue\n");
 	list_del_init(&wrr_se->list);
 	--rq->wrr.wrr_nr_running;
 }

@@ -77,6 +77,7 @@ struct sigaltstack;
 #include <linux/quota.h>
 #include <linux/key.h>
 #include <trace/syscall.h>
+#include <linux/sched/wrr.h>
 
 /*
  * __MAP - apply a macro to syscall arguments
@@ -211,6 +212,9 @@ extern struct trace_event_functions exit_syscall_print_funcs;
 	SYSCALL_ALIAS(sys##name, SyS##name);				\
 	static inline long SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__))
 #endif
+
+asmlinkage long sys_get_wrr_info(struct wrr_info __user *u_wrr_info);
+asmlinkage long sys_set_wrr_weight(int __user boosted_weight);
 
 asmlinkage long sys_time(time_t __user *tloc);
 asmlinkage long sys_stime(time_t __user *tptr);

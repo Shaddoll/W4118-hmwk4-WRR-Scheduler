@@ -83,11 +83,14 @@
 #endif
 
 #include "sched.h"
+#include "wrr.h"
 #include "../workqueue_internal.h"
 #include "../smpboot.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
+
+static int default_wrr_weight = 10;
 
 void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period)
 {
@@ -1774,7 +1777,7 @@ void wake_up_new_task(struct task_struct *p)
 	rq = __task_rq_lock(p);
 	
 	if (p->cred->uid >= 10000)
-		p->wre.weight = 10;
+		p->wre.weight = default_wrr_weight;
 	else
 		p->wre.weight = 1;
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
@@ -8111,4 +8114,46 @@ void dump_cpu_task(int cpu)
 {
 	pr_info("Task dump for CPU %d:\n", cpu);
 	sched_show_task(cpu_curr(cpu));
+}
+
+
+SYSCALL_DEFINE1(get_wrr_info, struct wrr_info*, u_wrr_info)
+{
+	struct wrr_info *k_wrr_info;
+	unsigned int cpu, i;
+	struct rq *rq;
+	int nr_cpus = num_online_cpus();
+
+	k_wrr_info = kmalloc(sizeof(struct wrr_info), GFP_KERNEL);
+	if (!k_wrr_info)
+		return -ENOMEM;
+
+	k_wrr_info->num_cpus = nr_cpus;
+	i = 0;
+	
+	rcu_read_lock();
+	for_each_online_cpu(cpu) {
+		rq = cpu_rq(cpu);
+		k_wrr_info->nr_running[i] = rq->wrr.wrr_nr_running;
+		k_wrr_info->total_weight[i] = rq->wrr.total_weight;
+	}
+	rcu_read_unlock();
+
+	if (copy_to_user(u_wrr_info, k_wrr_info, sizeof(struct wrr_info))) {
+		kfree(k_wrr_info);
+		return -EFAULT;
+	}
+	return 0;
+}
+
+SYSCALL_DEFINE1(set_wrr_weight, int, boosted_weight)
+{
+	if (current_euid() != 0 && current_uid() != 0)
+		return -EACCES;
+	if (boosted_weight < 1)
+		return -EINVAL;
+
+	default_wrr_weight = boosted_weight;
+
+	return 0;
 }

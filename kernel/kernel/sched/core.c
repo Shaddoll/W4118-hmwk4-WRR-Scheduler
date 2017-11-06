@@ -8136,6 +8136,7 @@ SYSCALL_DEFINE1(get_wrr_info, struct wrr_info*, u_wrr_info)
 		rq = cpu_rq(cpu);
 		k_wrr_info->nr_running[i] = rq->wrr.wrr_nr_running;
 		k_wrr_info->total_weight[i] = rq->wrr.total_weight;
+		i++;
 	}
 	rcu_read_unlock();
 

@@ -3656,7 +3656,8 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 		p->sched_class = &rt_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
-
+	if (is_wrr(p))
+		p->sched_class = &wrr_sched_class;
 	p->prio = prio;
 
 	if (running)

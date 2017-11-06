@@ -25,6 +25,8 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 	result = 0;
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
+		if (!cpumask_test_cpu(cpu, tsk_cpus_allowed(p)))
+			continue;
 		temp = cpu_rq(cpu)->wrr.total_weight;
 		//printk("cpu: %d, weight: %d\n", cpu, temp);
 		count++;

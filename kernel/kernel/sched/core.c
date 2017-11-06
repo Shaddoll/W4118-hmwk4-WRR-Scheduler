@@ -90,6 +90,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
+static int default_wrr_weight = 10;
+
 void start_bandwidth_timer(struct hrtimer *period_timer, ktime_t period)
 {
 	unsigned long delta;
@@ -8128,11 +8130,14 @@ SYSCALL_DEFINE1(get_wrr_info, struct wrr_info*, u_wrr_info)
 
 	k_wrr_info->num_cpus = nr_cpus;
 	i = 0;
+	
+	rcu_read_lock();
 	for_each_online_cpu(cpu) {
 		rq = cpu_rq(cpu);
 		k_wrr_info->nr_running[i] = rq->wrr.wrr_nr_running;
 		k_wrr_info->total_weight[i] = rq->wrr.total_weight;
 	}
+	rcu_read_unlock();
 
 	if (copy_to_user(u_wrr_info, k_wrr_info, sizeof(struct wrr_info))) {
 		kfree(k_wrr_info);

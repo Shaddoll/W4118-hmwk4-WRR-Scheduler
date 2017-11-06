@@ -32,7 +32,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 		}
 	}
 	rcu_read_unlock();
-	printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
+	//printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
 	return result;
 }
 

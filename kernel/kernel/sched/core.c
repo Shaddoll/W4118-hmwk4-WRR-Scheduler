@@ -2771,6 +2771,8 @@ void scheduler_tick(void)
 	if (rq->wrr.wrr_nr_running == 0)
 		pull_wrr_task(cpu);
 #endif
+	if (rq->nr_running == 0)
+		pull_wrr_task(cpu);
 	rq_last_tick_reset(rq);
 }
 

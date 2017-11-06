@@ -242,7 +242,7 @@ const struct sched_class wrr_sched_class = {
 #ifdef CONFIG_SMP
 	.select_task_rq		= select_task_rq_wrr,
 	//.pre_schedule		= pre_schedule_wrr,
-	//.post_schedule		= post_schedule_wrr,
+	//.post_schedule	= post_schedule_wrr,
 #endif
 
 	.set_curr_task          = set_curr_task_wrr,

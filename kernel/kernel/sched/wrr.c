@@ -206,7 +206,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	}
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
 
-	if (wrr_se->list.prev != wrr_se->list.next) {
+	if (&wrr_se->list != wrr_se->list.next) {
 		requeue_task_wrr(rq, p, 0);
 		resched_task(p);
 	}

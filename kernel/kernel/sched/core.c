@@ -83,6 +83,7 @@
 #endif
 
 #include "sched.h"
+#include "wrr.h"
 #include "../workqueue_internal.h"
 #include "../smpboot.h"
 

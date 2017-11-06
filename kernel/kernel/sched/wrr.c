@@ -1,4 +1,5 @@
 #include "sched.h"
+#include "wrr.h"
 
 /*
  * wrr-task scheduling class.
@@ -6,8 +7,7 @@
  * (NOTE: these are not related to SCHED_wrr tasks which are
  *  handled in sched/fair.c)
  */
- 
-#define WRR_TIMESLICE		(10 * HZ / 1000)
+
 
 #ifdef CONFIG_SMP
 static int
@@ -36,7 +36,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	
 	if (rq->wrr.wrr_nr_running == 0)
 		return NULL;
-	printk("=== pick next!\n");
+	//printk("=== pick next!\n");
 
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
 
@@ -47,7 +47,7 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
-	printk("========= enqueue\n");
+	//printk("========= enqueue\n");
 	struct list_head *queue = &(rq->wrr.queue);
 
 	if (head)
@@ -60,7 +60,7 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 static void
 dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
-	printk("========= dequeue\n");
+	//printk("========= dequeue\n");
 	list_del_init(&wrr_se->list);
 	--rq->wrr.wrr_nr_running;
 }

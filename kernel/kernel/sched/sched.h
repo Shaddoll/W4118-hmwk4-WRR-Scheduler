@@ -394,6 +394,7 @@ struct root_domain {
 };
 
 extern struct root_domain def_root_domain;
+void pull_wrr_task(int cpu_id);
 
 #endif /* CONFIG_SMP */
 

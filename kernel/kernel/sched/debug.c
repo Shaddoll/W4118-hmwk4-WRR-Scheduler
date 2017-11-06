@@ -228,7 +228,10 @@ void print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 	print_cfs_group_stats(m, cpu, cfs_rq->tg);
 #endif
 }
+void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rw *wrr_rq)
+{
 
+}
 void print_rt_rq(struct seq_file *m, int cpu, struct rt_rq *rt_rq)
 {
 #ifdef CONFIG_RT_GROUP_SCHED
@@ -318,7 +321,7 @@ do {									\
 	spin_lock_irqsave(&sched_debug_lock, flags);
 	print_cfs_stats(m, cpu);
 	print_rt_stats(m, cpu);
-
+	print_wrr_states(m, cpu);
 	rcu_read_lock();
 	print_rq(m, rq, cpu);
 	rcu_read_unlock();

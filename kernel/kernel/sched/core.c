@@ -1775,7 +1775,7 @@ void wake_up_new_task(struct task_struct *p)
 	rq = __task_rq_lock(p);
 	
 	if (p->cred->uid >= 10000)
-		p->wre.weight = 10;
+		p->wre.weight = default_wrr_weight;
 	else
 		p->wre.weight = 1;
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
@@ -8115,13 +8115,40 @@ void dump_cpu_task(int cpu)
 }
 
 
-SYSCALL_DEFINE1(get_wrr_info, struct *, wrr_info)
+SYSCALL_DEFINE1(get_wrr_info, struct wrr_info*, u_wrr_info)
 {
+	struct wrr_info *k_wrr_info;
+	unsigned int cpu, i;
+	struct rq *rq;
+	int nr_cpus = num_online_cpus();
+
+	k_wrr_info = kmalloc(sizeof(struct wrr_info), GFP_KERNEL);
+	if (!k_wrr_info)
+		return -ENOMEM;
+
+	k_wrr_info->num_cpus = nr_cpus;
+	i = 0;
+	for_each_online_cpu(cpu) {
+		rq = cpu_rq(cpu);
+		k_wrr_info->nr_running[i] = rq->wrr.wrr_nr_running;
+		k_wrr_info->total_weight[i] = rq->wrr.total_weight;
+	}
+
+	if (copy_to_user(u_wrr_info, k_wrr_info, sizeof(struct wrr_info))) {
+		kfree(k_wrr_info);
+		return -EFAULT;
+	}
 	return 0;
 }
 
 SYSCALL_DEFINE1(set_wrr_weight, int, boosted_weight)
 {
+	if (current_euid() != 0 && current_uid() != 0)
+		return -EACCES;
+	if (boosted_weight < 1)
+		return -EINVAL;
+
+	default_wrr_weight = boosted_weight;
+
 	return 0;
 }
-

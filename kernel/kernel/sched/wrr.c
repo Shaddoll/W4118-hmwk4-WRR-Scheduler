@@ -18,27 +18,28 @@
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
-	return 3;
-	/*int cpu, temp, result, count;
-	int minimum_weight = 2147483647;
+	int cpu, temp, result;
+	int minimum_weight;
 	
-	count = 0;
-	result = 0;
+	result = task_cpu(p);
+	if (p->nr_cpus_allowed == 1)
+		return result;
+	
+	minimum_weight = cpu_rq(result)->wrr.total_weight;
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
+		if (!cpumask_test_cpu(cpu, tsk_cpus_allowed(p)))
+			continue;
 		temp = cpu_rq(cpu)->wrr.total_weight;
 		//printk("cpu: %d, weight: %d\n", cpu, temp);
-		count++;
-		if (count == 1)
-			result = cpu;
-		if (temp <= minimum_weight) {
+		if (temp < minimum_weight) {
 			minimum_weight = temp;
 			result = cpu;
 		}
 	}
 	rcu_read_unlock();
 	//printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
-	return result;*/
+	return result;
 }
 
 #endif /* CONFIG_SMP */
@@ -215,12 +216,6 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	
 	//printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
-	//if (p->cred->uid == 20000) {
-	//	requeue_task_wrr(rq, p, 0);
-	//	resched_task(p);
-	//	return;
-	//}
-
 	if (--p->wre.time_slice > 0)
 		return;
 
@@ -245,7 +240,9 @@ static void set_curr_task_wrr(struct rq *rq)
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
-	;
+	if (p->on_rq && rq->curr != p)
+		if (rq == task_rq(p) && !rt_task(rq->curr))
+			resched_task(rq->curr);
 }
 
 static void

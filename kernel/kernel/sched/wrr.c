@@ -196,7 +196,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	watchdog(rq, p);
 	
-	printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
+	//printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
 	if (--p->wre.time_slice)
 		return;

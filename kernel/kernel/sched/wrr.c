@@ -18,7 +18,7 @@
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
-	return 0;
+	return 3;
 	/*int cpu, temp, result, count;
 	int minimum_weight = 2147483647;
 	
@@ -46,7 +46,24 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 static void
 update_curr_wrr(struct rq *rq)
 {
-	;
+	struct task_struct *curr = rq->curr;
+	u64 delta_exec;
+
+	if (curr->sched_class != &wrr_sched_class)
+		return;
+
+	delta_exec = rq->clock_task - curr->se.exec_start;
+	if (unlikely((s64)delta_exec <= 0))
+		return;
+
+	schedstat_set(curr->se.statistics.exec_max,
+		      max(curr->se.statistics.exec_max, delta_exec));
+
+	curr->se.sum_exec_runtime += delta_exec;
+	account_group_exec_runtime(curr, delta_exec);
+
+	curr->se.exec_start = rq->clock_task;
+	cpuacct_charge(curr, delta_exec);
 }
 
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -198,7 +215,13 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	
 	//printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
-	if (--p->wre.time_slice)
+	//if (p->cred->uid == 20000) {
+	//	requeue_task_wrr(rq, p, 0);
+	//	resched_task(p);
+	//	return;
+	//}
+
+	if (--p->wre.time_slice > 0)
 		return;
 
 	if (p->wre.weight > 1) {
@@ -207,7 +230,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 	}
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
 
-	if (&wrr_se->list != wrr_se->list.next) {
+	if (wrr_se->list.prev != wrr_se->list.next) {
 		requeue_task_wrr(rq, p, 0);
 		resched_task(p);
 	}

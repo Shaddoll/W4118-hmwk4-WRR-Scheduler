@@ -10,13 +10,16 @@ int main(int argc, char *argv[])
 {
 	int i = 0;
 	
-	setuid(10001);
+	setuid(20000);
 	
 	//for (i = 0; i < 2; i++)
 	//	if (fork())
 	//		break;
 
-	while (1) ;
+	while (1) {
+		//printf("block\n");
+		;
+	}
 	
 	return 0;
 }

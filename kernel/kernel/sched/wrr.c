@@ -18,23 +18,24 @@
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
-	int cpu, temp, result, count;
-	int minimum_weight = 2147483647;
+	int cpu, temp, result;
+	int minimum_weight;
+
+	//return 3;
 	
-	return 0;
+	result = task_cpu(p);
+	if (p->nr_cpus_allowed == 1)
+		return result;
 	
-	count = 0;
-	result = 0;
+	minimum_weight = cpu_rq(result)->wrr.total_weight;
+
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
 		if (!cpumask_test_cpu(cpu, tsk_cpus_allowed(p)))
 			continue;
 		temp = cpu_rq(cpu)->wrr.total_weight;
 		//printk("cpu: %d, weight: %d\n", cpu, temp);
-		count++;
-		if (count == 1)
-			result = cpu;
-		if (temp <= minimum_weight) {
+		if (temp < minimum_weight) {
 			minimum_weight = temp;
 			result = cpu;
 		}
@@ -49,7 +50,26 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 static void
 update_curr_wrr(struct rq *rq)
 {
-	;
+
+	struct task_struct *curr = rq->curr;
+	u64 delta_exec;
+
+	if (curr->sched_class != &wrr_sched_class)
+		return;
+
+	delta_exec = rq->clock_task - curr->se.exec_start;
+	if (unlikely((s64)delta_exec <= 0))
+		return;
+
+	schedstat_set(curr->se.statistics.exec_max,
+		      max(curr->se.statistics.exec_max, delta_exec));
+
+	curr->se.sum_exec_runtime += delta_exec;
+	account_group_exec_runtime(curr, delta_exec);
+
+	curr->se.exec_start = rq->clock_task;
+	cpuacct_charge(curr, delta_exec);
+
 }
 
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -65,7 +85,6 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	
 	if (rq->wrr.wrr_nr_running == 0)
 		return NULL;
-	//printk("=== pick next!\n");
 
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
 
@@ -76,7 +95,6 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
-	//printk("========= enqueue\n");
 	struct list_head *queue = &(rq->wrr.queue);
 
 	if (head)
@@ -90,7 +108,6 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 static void
 dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
-	//printk("========= dequeue\n");
 	list_del_init(&wrr_se->list);
 	rq->wrr.total_weight -= wrr_se->weight;
 	--rq->wrr.wrr_nr_running;
@@ -114,45 +131,78 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	dec_nr_running(rq);
 }
 
-void pull_wrr_task(int cpu_id) {
-	int i, moved;
-	struct rq *dest_rq = cpu_rq(cpu_id);
-	struct rq *temp_rq;
-	struct sched_wrr_entity *temp_wre;
+void pull_wrr_task(int dst_cpu) {
+	int src_cpu;
+	struct rq *dst_rq = cpu_rq(dst_cpu);
+	struct rq *src_rq;
+	struct sched_wrr_entity *src_wre;
 	struct task_struct *p;
-
-	moved = 0;
-	temp_rq = NULL;
-	for_each_online_cpu(i) {
-		if (i == cpu_id)
+	
+	//return;
+	
+	//printk("============= cpu %d try to pull!\n", dst_cpu);
+	if (!cpu_online(dst_cpu)) {
+		//printk("========== cpu %d not online!\n", dst_cpu);
+		return;
+	}
+	
+	src_rq = NULL;
+	for_each_online_cpu(src_cpu) {
+		if (src_cpu == dst_cpu)
 			continue;
 
-		temp_rq = cpu_rq(i);
+		src_rq = cpu_rq(src_cpu);
 
-		double_rq_lock(dest_rq, temp_rq);
-		if (temp_rq->wrr.wrr_nr_running == 1) {
-			double_rq_unlock(dest_rq, temp_rq);
+		double_rq_lock(dst_rq, src_rq);
+		if (list_empty(&src_rq->wrr.queue)) {
+			double_rq_unlock(dst_rq, src_rq);
+			//if (src_cpu == 3)
+				//printk("!!!!!!!!!!!!!!!!!!!!!!!! cpu 3 empty!\n");
 			continue;
 		}
 
-		list_for_each_entry(temp_wre, &temp_rq->wrr.queue, list) {			
-			p = container_of(temp_wre, struct task_struct, wre);//get task struct
+		list_for_each_entry(src_wre, &src_rq->wrr.queue, list) {			
+			p = container_of(src_wre, struct task_struct, wre);//get task struct
 
-			if (p == temp_rq->curr)
+			if (task_running(src_rq, p)) {
+				//if (src_cpu == 3)
+					//printk("!!!!!!!!!!!!!!!!!!!!!!!! cpu 3 is running p!\n");
 				continue;
+			}
+				
+			if (p->policy != SCHED_WRR) {
+				//if (src_cpu == 3)
+					//printk("!!!!!!!!!!!!!!!!!!!!!!!! p on cpu 3 is not WRR!\n");
+				continue;
+			}
 
-			if (!cpumask_test_cpu(cpu_id, tsk_cpus_allowed(p)))
+			if (!cpumask_test_cpu(dst_cpu, tsk_cpus_allowed(p))) {
+				//if (src_cpu == 3)
+					//printk("!!!!!!!!!!!!!!!!!!!!!!!! p on cpu 3 does not want to be run on cpu %d!\n", dst_cpu);
 				continue;//check if task can work on current CPU
+			}
+			
+			if (p->on_rq) {
+				
+				deactivate_task(src_rq, p, 0);
+				set_task_cpu(p, dst_cpu);
+				activate_task(dst_rq, p, 0);//dequeue and enqueue
+				
+				printk("==== steal from %d to %d \n", src_cpu, dst_cpu);
+				
+				check_preempt_curr(dst_rq, p, 0);
+				
+				double_rq_unlock(dst_rq, src_rq);
+				return;
+			}
+			//else {
+			//	if (src_cpu == 3)
+			//		printk("!!!!!!!!!!!!!!!!!!!!!!!! p on cpu 3 is not on rq!\n");
+			//}
+			
+		}
 
-			dequeue_task_wrr(temp_rq, p, 0);
-			enqueue_task_wrr(dest_rq, p, 0);//dequeue and enqueue
-			moved = 1;
-		}
-		if (moved) {
-			double_rq_unlock(dest_rq, temp_rq);
-			return;
-		}
-		double_rq_unlock(dest_rq, temp_rq);
+		double_rq_unlock(dst_rq, src_rq);
 	}
 }
 
@@ -173,8 +223,6 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	struct list_head *queue = &(rq->wrr.queue);
 
-	//printk("=== requeue\n");
-
 	if (head)
 		list_move(&wrr_se->list, queue);
 	else
@@ -189,26 +237,26 @@ yield_task_wrr(struct rq *rq)
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 {
+	update_curr_wrr(rq);
+	prev->se.exec_start = 0;
 }
 
 static void watchdog(struct rq *rq, struct task_struct *p)
 {
-	;
+
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wre;
-	
-	//return;
-	
+
 	update_curr_wrr(rq);
 
 	watchdog(rq, p);
 	
-	printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
+	//printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
-	if (--p->wre.time_slice)
+	if (--p->wre.time_slice > 0)
 		return;
 
 	if (p->wre.weight > 1) {
@@ -219,7 +267,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	if (wrr_se->list.prev != wrr_se->list.next) {
 		requeue_task_wrr(rq, p, 0);
-		set_tsk_need_resched(p);
+		resched_task(p);
 	}
 }
 
@@ -232,7 +280,9 @@ static void set_curr_task_wrr(struct rq *rq)
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
-	;
+	if (p->on_rq && rq->curr != p)
+		if (rq == task_rq(p) && !rt_task(rq->curr))
+			resched_task(rq->curr);
 }
 
 static void
@@ -288,4 +338,3 @@ void print_wrr_stats(struct seq_file *m, int cpu)
 	rcu_read_unlock();
 }
 #endif /* CONFIG_SCHED_DEBUG */
-

@@ -9,7 +9,6 @@
 void print(struct wrr_info *wrr_info)
 {
 	int i;
-	printf("=====================\n");
 	for (i = 0; i < wrr_info->num_cpus; i++) {
 		printf("\tcpu[%d]:\n", i);
 		printf("\t\tnr_running:\t%d\n", wrr_info->nr_running[i]);
@@ -22,11 +21,14 @@ int main(int argc, char *argv[])
 {
 	struct wrr_info u_wrr_info;
 	int i = 0;
+	
+	syscall(245, 30);
 
 	while (1) {
+		printf("===================== %d\n", i++);
 		syscall(244, &u_wrr_info);
 		print(&u_wrr_info);
-		sleep(3);
+		sleep(1);
 	}
 	
 	return 0;

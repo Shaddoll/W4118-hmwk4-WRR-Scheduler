@@ -4437,6 +4437,7 @@ void scheduler_tick(void)
 	struct rq *rq = cpu_rq(cpu);
 	struct task_struct *curr = rq->curr;
 
+	//printk("/////////////////////////// cpu %d ticks! wrr_nr_running: %d\n", cpu, rq->wrr.wrr_nr_running);
 	sched_clock_tick();
 
 	raw_spin_lock(&rq->lock);

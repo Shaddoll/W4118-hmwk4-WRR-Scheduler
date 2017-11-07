@@ -21,7 +21,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 	int cpu, temp, result;
 	int minimum_weight;
 
-	return 0;
+	//return 3;
 	
 	result = task_cpu(p);
 	if (p->nr_cpus_allowed == 1)
@@ -50,6 +50,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 static void
 update_curr_wrr(struct rq *rq)
 {
+
 	struct task_struct *curr = rq->curr;
 	u64 delta_exec;
 
@@ -68,6 +69,7 @@ update_curr_wrr(struct rq *rq)
 
 	curr->se.exec_start = rq->clock_task;
 	cpuacct_charge(curr, delta_exec);
+
 }
 
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -129,45 +131,78 @@ dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	dec_nr_running(rq);
 }
 
-void pull_wrr_task(int cpu_id) {
-	int i, moved;
-	struct rq *dest_rq = cpu_rq(cpu_id);
-	struct rq *temp_rq;
-	struct sched_wrr_entity *temp_wre;
+void pull_wrr_task(int dst_cpu) {
+	int src_cpu;
+	struct rq *dst_rq = cpu_rq(dst_cpu);
+	struct rq *src_rq;
+	struct sched_wrr_entity *src_wre;
 	struct task_struct *p;
-
-	moved = 0;
-	temp_rq = NULL;
-	for_each_online_cpu(i) {
-		if (i == cpu_id)
+	
+	//return;
+	
+	//printk("============= cpu %d try to pull!\n", dst_cpu);
+	if (!cpu_online(dst_cpu)) {
+		//printk("========== cpu %d not online!\n", dst_cpu);
+		return;
+	}
+	
+	src_rq = NULL;
+	for_each_online_cpu(src_cpu) {
+		if (src_cpu == dst_cpu)
 			continue;
 
-		temp_rq = cpu_rq(i);
+		src_rq = cpu_rq(src_cpu);
 
-		double_rq_lock(dest_rq, temp_rq);
-		if (temp_rq->wrr.wrr_nr_running == 1) {
-			double_rq_unlock(dest_rq, temp_rq);
+		double_rq_lock(dst_rq, src_rq);
+		if (list_empty(&src_rq->wrr.queue)) {
+			double_rq_unlock(dst_rq, src_rq);
+			//if (src_cpu == 3)
+				//printk("!!!!!!!!!!!!!!!!!!!!!!!! cpu 3 empty!\n");
 			continue;
 		}
 
-		list_for_each_entry(temp_wre, &temp_rq->wrr.queue, list) {			
-			p = container_of(temp_wre, struct task_struct, wre);//get task struct
+		list_for_each_entry(src_wre, &src_rq->wrr.queue, list) {			
+			p = container_of(src_wre, struct task_struct, wre);//get task struct
 
-			if (p == temp_rq->curr)
+			if (task_running(src_rq, p)) {
+				//if (src_cpu == 3)
+					//printk("!!!!!!!!!!!!!!!!!!!!!!!! cpu 3 is running p!\n");
 				continue;
+			}
+				
+			if (p->policy != SCHED_WRR) {
+				//if (src_cpu == 3)
+					//printk("!!!!!!!!!!!!!!!!!!!!!!!! p on cpu 3 is not WRR!\n");
+				continue;
+			}
 
-			if (!cpumask_test_cpu(cpu_id, tsk_cpus_allowed(p)))
+			if (!cpumask_test_cpu(dst_cpu, tsk_cpus_allowed(p))) {
+				//if (src_cpu == 3)
+					//printk("!!!!!!!!!!!!!!!!!!!!!!!! p on cpu 3 does not want to be run on cpu %d!\n", dst_cpu);
 				continue;//check if task can work on current CPU
+			}
+			
+			if (p->on_rq) {
+				
+				deactivate_task(src_rq, p, 0);
+				set_task_cpu(p, dst_cpu);
+				activate_task(dst_rq, p, 0);//dequeue and enqueue
+				
+				printk("==== steal from %d to %d \n", src_cpu, dst_cpu);
+				
+				check_preempt_curr(dst_rq, p, 0);
+				
+				double_rq_unlock(dst_rq, src_rq);
+				return;
+			}
+			//else {
+			//	if (src_cpu == 3)
+			//		printk("!!!!!!!!!!!!!!!!!!!!!!!! p on cpu 3 is not on rq!\n");
+			//}
+			
+		}
 
-			dequeue_task_wrr(temp_rq, p, 0);
-			enqueue_task_wrr(dest_rq, p, 0);//dequeue and enqueue
-			moved = 1;
-		}
-		if (moved) {
-			double_rq_unlock(dest_rq, temp_rq);
-			return;
-		}
-		double_rq_unlock(dest_rq, temp_rq);
+		double_rq_unlock(dst_rq, src_rq);
 	}
 }
 
@@ -202,11 +237,13 @@ yield_task_wrr(struct rq *rq)
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *prev)
 {
+	update_curr_wrr(rq);
+	prev->se.exec_start = 0;
 }
 
 static void watchdog(struct rq *rq, struct task_struct *p)
 {
-	;
+
 }
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)

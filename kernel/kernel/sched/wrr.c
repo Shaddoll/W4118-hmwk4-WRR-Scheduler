@@ -26,7 +26,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
 		temp = cpu_rq(cpu)->wrr.total_weight;
-		printk("cpu: %d, weight: %d\n", cpu, temp);
+		//printk("cpu: %d, weight: %d\n", cpu, temp);
 		count++;
 		if (count == 1)
 			result = cpu;
@@ -169,7 +169,7 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	struct list_head *queue = &(rq->wrr.queue);
 
-	printk("=== requeue\n");
+	//printk("=== requeue\n");
 
 	if (head)
 		list_move(&wrr_se->list, queue);
@@ -270,4 +270,18 @@ const struct sched_class wrr_sched_class = {
 	.prio_changed		= prio_changed_wrr,
 	.switched_to		= switched_to_wrr,
 };
+
+#ifdef CONFIG_SCHED_DEBUG
+extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
+
+void print_wrr_stats(struct seq_file *m, int cpu)
+{
+	struct wrr_rq *wrr_rq;
+
+	rcu_read_lock();
+	wrr_rq = &(cpu_rq(cpu)->wrr);
+	print_wrr_rq(m, cpu, wrr_rq);
+	rcu_read_unlock();
+}
+#endif /* CONFIG_SCHED_DEBUG */
 

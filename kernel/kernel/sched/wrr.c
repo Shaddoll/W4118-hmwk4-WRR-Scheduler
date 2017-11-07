@@ -21,6 +21,8 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 	int cpu, temp, result, count;
 	int minimum_weight = 2147483647;
 	
+	return 0;
+	
 	count = 0;
 	result = 0;
 	rcu_read_lock();

@@ -1698,13 +1698,11 @@ void sched_fork(struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL;
-			p->static_prio = NICE_TO_PRIO(0);
-			p->rt_priority = 0;
+			p->policy = SCHED_WRR;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
 			p->static_prio = NICE_TO_PRIO(0);
 
-		p->prio = p->normal_prio = __normal_prio(p);
+		//p->prio = p->normal_prio = __normal_prio(p);
 		set_load_weight(p);
 
 		/*
@@ -1714,15 +1712,15 @@ void sched_fork(struct task_struct *p)
 		p->sched_reset_on_fork = 0;
 	}
 
-	if (!rt_prio(p->prio))
+	//wrr
+	if (is_wrr(p))
+		p->sched_class = &wrr_sched_class;
+	else if (!rt_prio(p->prio))
 		p->sched_class = &fair_sched_class;
 
 	if (p->sched_class->task_fork)
 		p->sched_class->task_fork(p);
 
-	//wrr
-	if (is_wrr(p))
-		p->sched_class = &wrr_sched_class;
 	/*
 	 * The child is not yet in the pid-hash so no cgroup attach races,
 	 * and the cgroup is pinned to this child due to cgroup_fork()
@@ -3652,12 +3650,12 @@ void rt_mutex_setprio(struct task_struct *p, int prio)
 	if (running)
 		p->sched_class->put_prev_task(rq, p);
 
-	if (rt_prio(prio))
+	if (is_wrr(p))
+		p->sched_class = &wrr_sched_class;
+	else if (rt_prio(prio))
 		p->sched_class = &rt_sched_class;
 	else
 		p->sched_class = &fair_sched_class;
-	if (is_wrr(p))
-		p->sched_class = &wrr_sched_class;
 	p->prio = prio;
 
 	if (running)
@@ -7100,7 +7098,6 @@ void __init sched_init(void)
 	 * During early bootup we pretend to be a normal task:
 	 */
 	current->sched_class = &wrr_sched_class; //wrr
-	current->sched_class = &fair_sched_class;
 
 #ifdef CONFIG_SMP
 	zalloc_cpumask_var(&sched_domains_tmpmask, GFP_NOWAIT);

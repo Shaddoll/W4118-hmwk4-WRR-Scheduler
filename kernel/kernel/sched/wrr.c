@@ -20,12 +20,15 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
 	int cpu, temp, result;
 	int minimum_weight;
+
+	return 0;
 	
 	result = task_cpu(p);
 	if (p->nr_cpus_allowed == 1)
 		return result;
 	
 	minimum_weight = cpu_rq(result)->wrr.total_weight;
+
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
 		if (!cpumask_test_cpu(cpu, tsk_cpus_allowed(p)))

@@ -26,7 +26,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
 		temp = cpu_rq(cpu)->wrr.total_weight;
-		printk("cpu: %d, weight: %d\n", cpu, temp);
+		//printk("cpu: %d, weight: %d\n", cpu, temp);
 		count++;
 		if (count == 1)
 			result = cpu;
@@ -36,7 +36,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 		}
 	}
 	rcu_read_unlock();
-	printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
+	//printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
 	return result;
 }
 

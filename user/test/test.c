@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sched.h>
+#include <sys/types.h>
 #include <sys/syscall.h>
 #include "../../kernel/kernel/sched/wrr.h"
 
@@ -20,6 +21,7 @@ void print(struct wrr_info *wrr_info)
 int main(int argc, char *argv[])
 {
 	struct wrr_info u_wrr_info;
+	int i = 0;
 
 	while (1) {
 		syscall(244, &u_wrr_info);

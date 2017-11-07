@@ -18,7 +18,8 @@
 static int
 select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 {
-	int cpu, temp, result, count;
+	return 0;
+	/*int cpu, temp, result, count;
 	int minimum_weight = 2147483647;
 	
 	count = 0;
@@ -37,7 +38,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 	}
 	rcu_read_unlock();
 	//printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
-	return result;
+	return result;*/
 }
 
 #endif /* CONFIG_SMP */
@@ -195,7 +196,7 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	watchdog(rq, p);
 	
-	//printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
+	printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
 	if (--p->wre.time_slice)
 		return;

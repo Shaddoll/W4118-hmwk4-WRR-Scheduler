@@ -36,7 +36,7 @@ select_task_rq_wrr(struct task_struct *p, int sd_flag, int flags)
 		}
 	}
 	rcu_read_unlock();
-	//printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
+	printk("choose cpu: %d, weight: %d\n", result, minimum_weight);
 	return result;
 }
 
@@ -61,7 +61,6 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 	
 	if (rq->wrr.wrr_nr_running == 0)
 		return NULL;
-	//printk("=== pick next!\n");
 
 	result = list_first_entry(&((rq->wrr).queue), struct sched_wrr_entity, list);
 
@@ -72,7 +71,6 @@ static struct task_struct *pick_next_task_wrr(struct rq *rq)
 static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
-	//printk("========= enqueue\n");
 	struct list_head *queue = &(rq->wrr.queue);
 
 	if (head)
@@ -86,7 +84,6 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 static void
 dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
-	//printk("========= dequeue\n");
 	list_del_init(&wrr_se->list);
 	rq->wrr.total_weight -= wrr_se->weight;
 	--rq->wrr.wrr_nr_running;
@@ -169,8 +166,6 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	struct list_head *queue = &(rq->wrr.queue);
 
-	printk("=== requeue\n");
-
 	if (head)
 		list_move(&wrr_se->list, queue);
 	else
@@ -195,14 +190,12 @@ static void watchdog(struct rq *rq, struct task_struct *p)
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wre;
-	
-	//return;
-	
+
 	update_curr_wrr(rq);
 
 	watchdog(rq, p);
 	
-	printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
+	//printk("======= cpu: %d task_tick: %d time_slice: %d\n", cpu_of(rq), p->pid, p->wre.time_slice);
 
 	if (--p->wre.time_slice)
 		return;
@@ -271,3 +264,16 @@ const struct sched_class wrr_sched_class = {
 	.switched_to		= switched_to_wrr,
 };
 
+#ifdef CONFIG_SCHED_DEBUG
+extern void print_wrr_rq(struct seq_file *m, int cpu, struct wrr_rq *wrr_rq);
+
+void print_wrr_stats(struct seq_file *m, int cpu)
+{
+	struct wrr_rq *wrr_rq;
+
+	rcu_read_lock();
+	wrr_rq = &(cpu_rq(cpu)->wrr);
+	print_wrr_rq(m, cpu, wrr_rq);
+	rcu_read_unlock();
+}
+#endif /* CONFIG_SCHED_DEBUG */

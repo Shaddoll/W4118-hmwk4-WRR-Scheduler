@@ -96,7 +96,10 @@ static void
 enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 {
 	struct list_head *queue = &(rq->wrr.queue);
+	//struct task_struct *p;
 
+	//p = container_of(wrr_se, struct task_struct, wre);
+	//printk("Enqueuing process: %d\n", p->pid);
 	if (head)
 		list_add(&wrr_se->list, queue);
 	else
@@ -108,6 +111,9 @@ enqueue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se, bool head)
 static void
 dequeue_wrr_entity(struct rq *rq, struct sched_wrr_entity *wrr_se)
 {
+	//struct task_struct *p;
+	//p = container_of(wrr_se, struct task_struct, wre);
+	//printk("Dequeuing process: %d\n", p->pid);   
 	list_del_init(&wrr_se->list);
 	rq->wrr.total_weight -= wrr_se->weight;
 	--rq->wrr.wrr_nr_running;
@@ -220,6 +226,7 @@ void init_wrr_rq(struct wrr_rq *wrr_rq, struct rq *rq)
  */
 static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 {
+	//printk("Requeuing task: %d\n", p->pid);
 	struct sched_wrr_entity *wrr_se = &p->wre;
 	struct list_head *queue = &(rq->wrr.queue);
 

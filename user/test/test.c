@@ -28,6 +28,7 @@ int main(int argc, char *argv[])
 		printf("===================== %d\n", i++);
 		syscall(244, &u_wrr_info);
 		print(&u_wrr_info);
+		//usleep(100000);
 		sleep(1);
 	}
 	

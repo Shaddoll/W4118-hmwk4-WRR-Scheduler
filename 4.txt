@@ -1,0 +1,35 @@
+
+===================== 125
+	cpu[0]:
+		nr_running:	0
+		total_weight:	0
+-------------
+	cpu[1]:
+		nr_running:	0
+		total_weight:	0
+-------------
+	cpu[2]:
+		nr_running:	0
+		total_weight:	0
+-------------
+	cpu[3]:
+		nr_running:	11
+		total_weight:	11
+-------------
+	cpu[4]:
+		nr_running:	0
+		total_weight:	0
+-------------
+	cpu[5]:
+		nr_running:	0
+		total_weight:	0
+-------------
+	cpu[6]:
+		nr_running:	0
+		total_weight:	0
+-------------
+	cpu[7]:
+		nr_running:	0
+		total_weight:	0
+-------------
+

@@ -3434,13 +3434,13 @@ void wake_up_new_task(struct task_struct *p)
 
 	rq = __task_rq_lock(p);
 	mark_task_starting(p);
-	
+
 	if (p->cred->uid >= 10000)
 		p->wre.weight = default_wrr_weight;
 	else
 		p->wre.weight = 1;
 	p->wre.time_slice = WRR_TIMESLICE * p->wre.weight;
-	
+
 	activate_task(rq, p, 0);
 	p->on_rq = 1;
 	trace_sched_wakeup_new(p, true);
@@ -10193,7 +10193,7 @@ SYSCALL_DEFINE1(get_wrr_info, struct wrr_info*, u_wrr_info)
 
 	k_wrr_info->num_cpus = nr_cpus;
 	i = 0;
-	
+
 	rcu_read_lock();
 	for_each_online_cpu(cpu) {
 		rq = cpu_rq(cpu);

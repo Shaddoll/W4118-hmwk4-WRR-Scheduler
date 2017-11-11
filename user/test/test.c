@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	struct wrr_info u_wrr_info;
 	int i = 0;
 	
-	syscall(245, 30);
+	syscall(245, 10);
 
 	while (1) {
 		printf("===================== %d\n", i++);

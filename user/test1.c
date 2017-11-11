@@ -8,9 +8,11 @@
 
 int main(int argc, char *argv[])
 {
-	int i = 0;
+	//int i = 0;
 	
 	setuid(20000);
+	
+	printf("%d\n", getpid());
 	
 	//for (i = 0; i < 2; i++)
 	//	if (fork())
